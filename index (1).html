@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบประสานคดีพนักงานอัยการ</title>
+<style>
+/* ===== RESET & BASE ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:'Sarabun',sans-serif;background:#f5f6fa;color:#1a1a2e;min-height:100vh}
+
+/* ===== TOPBAR ===== */
+.topbar{background:#fff;border-bottom:1px solid #e8eaf0;padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1a56db,#2563eb);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;flex-shrink:0}
+.org-title{font-weight:700;font-size:15px;line-height:1.25;color:#1a1a2e}
+.org-sub{font-size:11px;color:#6b7280}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.sync-status{display:flex;align-items:center;gap:6px;font-size:12px;border:1px solid #e5e7eb;border-radius:20px;padding:5px 13px;background:#f9fafb;color:#374151;cursor:default;transition:all .2s}
+.sync-status.syncing{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}
+.sync-status.error{border-color:#fca5a5;background:#fef2f2;color:#dc2626}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;transition:background .3s}
+.sync-status.syncing .sync-dot{background:#3b82f6;animation:pulse 1s infinite}
+.sync-status.error .sync-dot{background:#ef4444}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-time{font-size:12px;color:#9ca3af}
+.btn-add{background:#1a56db;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;font-family:'Sarabun',sans-serif}
+.btn-add:hover{background:#1747b0}
+.btn-add:active{transform:scale(.98)}
+
+/* ===== SETUP BANNER ===== */
+.setup-banner{background:#fffbeb;border:1px solid #f59e0b;border-radius:12px;padding:16px 20px;margin:20px 28px 0;display:flex;align-items:flex-start;gap:12px}
+.setup-banner .icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.setup-banner .content{flex:1}
+.setup-banner h3{font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px}
+.setup-banner p{font-size:12px;color:#b45309;line-height:1.6}
+.setup-banner input{margin-top:10px;width:100%;border:1px solid #f59e0b;border-radius:8px;padding:7px 12px;font-size:12px;background:#fff;color:#1a1a2e;font-family:'Sarabun',sans-serif}
+.setup-banner input:focus{outline:none;border-color:#1a56db;box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+.setup-btn{margin-top:8px;background:#f59e0b;color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif}
+.setup-btn:hover{background:#d97706}
+
+/* ===== MAIN ===== */
+.main{padding:20px 28px 40px}
+
+/* ===== ALERT ===== */
+.alert-box{background:#fffbeb;border:1px solid #fbbf24;border-radius:12px;padding:14px 18px;margin-bottom:18px}
+.alert-title{font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px}
+.alert-item{font-size:12px;color:#b45309;padding:2px 0;display:flex;align-items:center;gap:8px}
+
+/* ===== STATS ===== */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:#fff;border:1px solid #e8eaf0;border-radius:12px;padding:16px 20px;transition:box-shadow .2s}
+.stat-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.stat-label{font-size:11px;color:#6b7280;margin-bottom:6px;display:flex;align-items:center;gap:6px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.stat-num{font-size:28px;font-weight:700;line-height:1}
+.stat-num.blue{color:#1a56db}
+.stat-num.red{color:#dc2626}
+.stat-num.amber{color:#d97706}
+.stat-num.green{color:#16a34a}
+
+/* ===== SECTION HEADER ===== */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+.section-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;color:#1a1a2e}
+.count-badge{background:#1a56db;color:#fff;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+.filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.filter-btn{border:1px solid #e5e7eb;background:#fff;border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;color:#6b7280;font-family:'Sarabun',sans-serif;font-weight:500;transition:all .15s}
+.filter-btn:hover{border-color:#1a56db;color:#1a56db}
+.filter-btn.active{background:#1a56db;color:#fff;border-color:#1a56db}
+.search-wrap{position:relative}
+.search-wrap input{border:1px solid #e5e7eb;border-radius:20px;padding:6px 12px 6px 32px;font-size:12px;width:200px;background:#fff;color:#1a1a2e;font-family:'Sarabun',sans-serif;transition:border-color .15s}
+.search-wrap input:focus{outline:none;border-color:#1a56db}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;pointer-events:none}
+
+/* ===== TABLE ===== */
+.case-table{background:#fff;border:1px solid #e8eaf0;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.table-head{display:grid;grid-template-columns:44px 1fr 150px 170px 140px 80px;background:#f8f9fc;border-bottom:1px solid #e8eaf0;padding:10px 16px;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;gap:0}
+.case-row{display:grid;grid-template-columns:44px 1fr 150px 170px 140px 80px;padding:14px 16px;border-bottom:1px solid #f3f4f6;align-items:start;transition:background .1s;gap:0}
+.case-row:last-child{border-bottom:none}
+.case-row:hover{background:#f8f9fc}
+.case-num{font-size:12px;color:#9ca3af;padding-top:3px;font-weight:500}
+.case-name{font-weight:700;font-size:13px;color:#1a1a2e;line-height:1.35}
+.case-meta{font-size:11px;color:#6b7280;margin-top:3px}
+.case-code{font-size:10px;color:#9ca3af;background:#f3f4f6;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px;font-family:monospace}
+.status-text{font-size:12px;color:#374151;line-height:1.4}
+.next-text{font-size:12px;color:#6b7280;line-height:1.4}
+.deadline-date{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600}
+.deadline-sub{font-size:11px;color:#9ca3af;margin-top:2px}
+.dot-sm{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-amber{background:#f59e0b}
+.dot-red{background:#ef4444}
+.dot-green{background:#22c55e}
+.dot-gray{background:#d1d5db}
+.actions{display:flex;align-items:center;gap:6px;padding-top:2px}
+.icon-btn{width:30px;height:30px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s}
+.icon-btn:hover{border-color:#1a56db;background:#eff6ff}
+.icon-btn.del:hover{border-color:#dc2626;background:#fef2f2}
+.empty-state{text-align:center;padding:50px;color:#9ca3af;font-size:13px}
+.empty-icon{font-size:36px;margin-bottom:12px}
+
+/* ===== MODAL ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px;backdrop-filter:blur(2px)}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid #f3f4f6;position:sticky;top:0;background:#fff;z-index:1;border-radius:16px 16px 0 0}
+.modal-title{font-size:16px;font-weight:700;color:#1a1a2e}
+.close-btn{width:30px;height:30px;border:1px solid #e5e7eb;background:#fff;border-radius:8px;cursor:pointer;font-size:16px;color:#6b7280;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.close-btn:hover{background:#f3f4f6;color:#1a1a2e}
+.modal-body{padding:20px 24px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;color:#374151;margin-bottom:5px;display:block;font-weight:600}
+.form-label .req{color:#dc2626}
+.form-input,.form-select,.form-textarea{width:100%;border:1px solid #e5e7eb;border-radius:9px;padding:9px 12px;font-size:13px;background:#fff;color:#1a1a2e;font-family:'Sarabun',sans-serif;transition:border-color .15s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:#1a56db;box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.form-textarea{resize:vertical;min-height:80px;line-height:1.6}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #f3f4f6;position:sticky;bottom:0;background:#fff;border-radius:0 0 16px 16px}
+.btn-cancel{border:1px solid #e5e7eb;background:#fff;border-radius:9px;padding:9px 20px;font-size:13px;cursor:pointer;color:#374151;font-family:'Sarabun',sans-serif;font-weight:600;transition:background .15s}
+.btn-cancel:hover{background:#f3f4f6}
+.btn-save{background:#1a56db;color:#fff;border:none;border-radius:9px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'Sarabun',sans-serif;transition:background .15s}
+.btn-save:hover{background:#1747b0}
+.btn-save:disabled{background:#93c5fd;cursor:not-allowed}
+
+/* ===== CONFIRM ===== */
+.confirm-overlay{position:fixed;inset:0;background:rgba(17,24,39,.5);display:flex;align-items:center;justify-content:center;z-index:600;padding:20px;backdrop-filter:blur(2px)}
+.confirm-box{background:#fff;border-radius:16px;padding:28px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.confirm-icon{font-size:36px;margin-bottom:14px}
+.confirm-title{font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:8px}
+.confirm-desc{font-size:13px;color:#6b7280;margin-bottom:22px;line-height:1.7}
+.confirm-actions{display:flex;gap:10px;justify-content:flex-end}
+.btn-danger{background:#dc2626;color:#fff;border:none;border-radius:9px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sarabun',sans-serif;transition:background .15s}
+.btn-danger:hover{background:#b91c1c}
+.btn-danger:disabled{background:#fca5a5;cursor:not-allowed}
+
+/* ===== TOAST ===== */
+.toast{position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:#fff;border-radius:10px;padding:12px 18px;font-size:13px;z-index:999;transform:translateY(100px);opacity:0;transition:all .3s;display:flex;align-items:center;gap:8px;max-width:320px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{background:#15803d}
+.toast.error{background:#dc2626}
+
+/* ===== LOADING OVERLAY ===== */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;z-index:800;backdrop-filter:blur(4px)}
+.loading-spinner{text-align:center}
+.spinner{width:36px;height:36px;border:3px solid #e5e7eb;border-top-color:#1a56db;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:#6b7280}
+
+@media(max-width:768px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .table-head{display:none}
+  .case-row{grid-template-columns:1fr auto;grid-template-rows:auto auto auto}
+  .case-num{display:none}
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner">
+    <div class="spinner"></div>
+    <div class="loading-text">กำลังโหลดข้อมูล...</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">⚖️</div>
+    <div>
+      <div class="org-title">ระบบประสานคดีพนักงานอัยการ</div>
+      <div class="org-sub">กรมสวัสดิการและคุ้มครองแรงงาน จ.นนทบุรี</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="sync-status" id="sync-status" onclick="loadCases()">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-label">กำลังโหลด...</span>
+    </div>
+    <span class="topbar-time" id="clock"></span>
+    <button class="btn-add" onclick="openAddModal()">+ เพิ่มคดีใหม่</button>
+  </div>
+</div>
+
+<!-- Setup banner (ซ่อนหลังตั้งค่าแล้ว) -->
+<div class="setup-banner" id="setup-banner" style="display:none">
+  <div class="icon">⚙️</div>
+  <div class="content">
+    <h3>ตั้งค่า Google Apps Script URL</h3>
+    <p>วาง URL ของ Apps Script Web App ที่ Deploy ไว้แล้ว แล้วกดบันทึก</p>
+    <input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/.../exec">
+    <br>
+    <button class="setup-btn" onclick="saveApiUrl()">💾 บันทึกและเชื่อมต่อ</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div id="alert-section"></div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">📋 คดีทั้งหมด</div>
+      <div class="stat-num blue" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🔴 เกินกำหนด</div>
+      <div class="stat-num red" id="stat-overdue">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🟡 ใกล้ครบกำหนด (≤7 วัน)</div>
+      <div class="stat-num amber" id="stat-soon">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🟢 ปกติ</div>
+      <div class="stat-num green" id="stat-ok">—</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-title">รายการคดี <span class="count-badge" id="list-count">0 คดี</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="filter-row">
+        <button class="filter-btn active" onclick="setFilter('all',this)">ทั้งหมด</button>
+        <button class="filter-btn" onclick="setFilter('overdue',this)">เกินกำหนด</button>
+        <button class="filter-btn" onclick="setFilter('soon',this)">ใกล้ครบ</button>
+        <button class="filter-btn" onclick="setFilter('ok',this)">ปกติ</button>
+        <button class="filter-btn" onclick="setFilter('none',this)">ไม่ระบุวัน</button>
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="ค้นหาชื่อคดี / นายจ้าง..." oninput="setSearch(this.value)">
+      </div>
+    </div>
+  </div>
+
+  <div class="case-table">
+    <div class="table-head">
+      <div>#</div>
+      <div>ชื่อคดี / ชื่อนายจ้าง</div>
+      <div>สถานะปัจจุบัน</div>
+      <div>NEXT STEPS</div>
+      <div>กำหนดเวลา</div>
+      <div>จัดการ</div>
+    </div>
+    <div id="case-list">
+      <div class="empty-state"><div class="empty-icon">📂</div>กำลังโหลดข้อมูล...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal เพิ่ม/แก้ไข -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="handleOverlayClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">เพิ่มคดีใหม่</div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">เลขที่คดี / รหัสอ้างอิง</label>
+          <input class="form-input" id="f-code" placeholder="เช่น นบ.001/68">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">ชื่อนายจ้าง / บริษัท <span class="req">*</span></label>
+          <input class="form-input" id="f-employer" placeholder="ชื่อบริษัทหรือนายจ้าง">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ชื่อคดี <span class="req">*</span></label>
+        <input class="form-input" id="f-name" placeholder="ชื่อคดีหรือหัวเรื่องสั้นๆ">
+      </div>
+      <div class="form-group">
+        <label class="form-label">สถานะปัจจุบัน <span class="req">*</span></label>
+        <textarea class="form-textarea" id="f-status" placeholder="รายละเอียดสถานะคดีปัจจุบัน"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">NEXT STEPS</label>
+        <textarea class="form-textarea" id="f-next" placeholder="เช่น จัดทำหนังสือเตือนครั้งที่ 2"></textarea>
+      </div>
+      <div class="form-row" style="margin-bottom:14px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">กำหนดเวลา</label>
+          <input class="form-input" id="f-deadline" type="date">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">ประเภทคดี</label>
+          <select class="form-select" id="f-type">
+            <option>กองทุนสงเคราะห์</option>
+            <option>แรงงานสัมพันธ์</option>
+            <option>คุ้มครองแรงงาน</option>
+            <option>ความปลอดภัย</option>
+            <option>อื่นๆ</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">หมายเหตุ</label>
+        <textarea class="form-textarea" id="f-note" placeholder="บันทึกเพิ่มเติม (ไม่บังคับ)" style="min-height:60px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-save" id="btn-save" onclick="saveCase()">💾 บันทึกคดี</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete -->
+<div class="confirm-overlay" id="confirm" style="display:none">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">ยืนยันการลบคดี</div>
+    <div class="confirm-desc" id="confirm-desc"></div>
+    <div class="confirm-actions">
+      <button class="btn-cancel" onclick="closeConfirm()">ยกเลิก</button>
+      <button class="btn-danger" id="btn-confirm-del" onclick="confirmDelete()">ลบคดี</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== CONFIG ==========
+// วาง Apps Script URL ตรงนี้เลย หรือตั้งผ่านหน้าเว็บ
+const DEFAULT_API_URL = ''; // ใส่ URL ตรงนี้ได้เลย เช่น 'https://script.google.com/macros/s/xxx/exec'
+const API_URL_KEY = 'prosecutor_api_url';
+
+let API_URL = localStorage.getItem(API_URL_KEY) || DEFAULT_API_URL;
+let cases = [];
+let filter = 'all';
+let search = '';
+let editId = null;
+let deleteId = null;
+
+// ========== INIT ==========
+window.addEventListener('DOMContentLoaded', () => {
+  clockTick();
+  setInterval(clockTick, 30000);
+
+  if (!API_URL) {
+    document.getElementById('setup-banner').style.display = 'flex';
+    document.getElementById('loading').style.display = 'none';
+    setSyncStatus('error', 'ยังไม่เชื่อมต่อ');
+    renderEmpty();
+    return;
+  }
+  loadCases();
+});
+
+function renderEmpty() {
+  document.getElementById('stat-total').textContent = '0';
+  document.getElementById('stat-overdue').textContent = '0';
+  document.getElementById('stat-soon').textContent = '0';
+  document.getElementById('stat-ok').textContent = '0';
+  document.getElementById('list-count').textContent = '0 คดี';
+  document.getElementById('case-list').innerHTML = '<div class="empty-state"><div class="empty-icon">⚙️</div>กรุณาตั้งค่า API URL ก่อนใช้งาน</div>';
+  document.getElementById('alert-section').innerHTML = '';
+}
+
+// ========== API ==========
+async function apiFetch(params) {
+  if (!API_URL) throw new Error('No API URL');
+
+  // GET
+  if (params.action === 'getAll') {
+    const url = API_URL + '?action=getAll&t=' + Date.now();
+    const res = await fetch(url);
+    return res.json();
+  }
+
+  // POST
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(params)
+  });
+  return res.json();
+}
+
+async function loadCases() {
+  setSyncStatus('syncing', 'กำลังซิงก์...');
+  document.getElementById('loading').style.display = 'flex';
+
+  try {
+    const data = await apiFetch({ action: 'getAll' });
+    cases = (data.cases || []).map(normalizeCase);
+    setSyncStatus('ok', 'ซิงค์แล้ว');
+    render();
+    showToast('โหลดข้อมูลสำเร็จ — ' + cases.length + ' คดี', 'success');
+  } catch (err) {
+    setSyncStatus('error', 'เชื่อมต่อไม่ได้');
+    showToast('โหลดข้อมูลไม่สำเร็จ: ' + err.message, 'error');
+    render();
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function normalizeCase(c) {
+  return {
+    id: String(c.id || ''),
+    code: String(c.code || ''),
+    name: String(c.name || ''),
+    employer: String(c.employer || ''),
+    status: String(c.status || ''),
+    next: String(c.next || ''),
+    deadline: String(c.deadline || ''),
+    caseType: String(c.caseType || ''),
+    note: String(c.note || ''),
+    createdAt: c.createdAt || Date.now()
+  };
+}
+
+// ========== RENDER ==========
+function getDeadlineStatus(c) {
+  if (!c.deadline || c.deadline === '' || c.deadline === 'undefined') return 'none';
+  const d = diffDays(c.deadline);
+  if (d === null) return 'none';
+  if (d < 0) return 'overdue';
+  if (d <= 7) return 'soon';
+  return 'ok';
+}
+
+function diffDays(dateStr) {
+  if (!dateStr) return null;
+  // รองรับทั้ง YYYY-MM-DD และ DD/MM/YYYY
+  let parts;
+  if (dateStr.includes('-')) {
+    parts = dateStr.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    const now = new Date(); now.setHours(0,0,0,0);
+    return Math.round((d - now) / 86400000);
+  }
+  return null;
+}
+
+function thDate(dateStr) {
+  if (!dateStr || dateStr === '' || dateStr === 'undefined') return '—';
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  if (dateStr.includes('-')) {
+    const [y,m,d] = dateStr.split('-');
+    return `${parseInt(d)} ${months[parseInt(m)-1]} ${parseInt(y)+543}`;
+  }
+  return dateStr;
+}
+
+function render() {
+  let filtered = cases.filter(c => {
+    const st = getDeadlineStatus(c);
+    if (filter === 'overdue' && st !== 'overdue') return false;
+    if (filter === 'soon' && st !== 'soon') return false;
+    if (filter === 'ok' && st !== 'ok') return false;
+    if (filter === 'none' && st !== 'none') return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!c.name.toLowerCase().includes(q) && !c.employer.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const overdue = cases.filter(c => getDeadlineStatus(c)==='overdue').length;
+  const soon = cases.filter(c => getDeadlineStatus(c)==='soon').length;
+  const ok = cases.filter(c => getDeadlineStatus(c)==='ok').length;
+
+  document.getElementById('stat-total').textContent = cases.length;
+  document.getElementById('stat-overdue').textContent = overdue;
+  document.getElementById('stat-soon').textContent = soon;
+  document.getElementById('stat-ok').textContent = ok;
+  document.getElementById('list-count').textContent = filtered.length + ' คดี';
+
+  // Alert
+  const alertEl = document.getElementById('alert-section');
+  const urgentCases = cases.filter(c => ['overdue','soon'].includes(getDeadlineStatus(c)));
+  if (urgentCases.length) {
+    const items = urgentCases.sort((a,b) => {
+      const sa = getDeadlineStatus(a) === 'overdue' ? 0 : 1;
+      const sb = getDeadlineStatus(b) === 'overdue' ? 0 : 1;
+      return sa - sb;
+    }).map(c => {
+      const st = getDeadlineStatus(c);
+      const d = diffDays(c.deadline);
+      const icon = st === 'overdue' ? '🔴' : '🟡';
+      const label = st === 'overdue' ? `เกินกำหนดมาแล้ว ${Math.abs(d)} วัน` : `อีก ${d} วัน`;
+      return `<div class="alert-item">${icon} <strong>${escHtml(c.name)}</strong> — ${thDate(c.deadline)} <span style="color:#9ca3af">(${label})</span></div>`;
+    }).join('');
+    alertEl.innerHTML = `<div class="alert-box"><div class="alert-title">⚠️ คดีที่ต้องดำเนินการเร่งด่วน ${urgentCases.length} คดี</div>${items}</div>`;
+  } else {
+    alertEl.innerHTML = '';
+  }
+
+  // List
+  const listEl = document.getElementById('case-list');
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div>${cases.length ? 'ไม่พบคดีที่ตรงกับเงื่อนไข' : 'ยังไม่มีรายการคดี'}</div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map((c, i) => {
+    const st = getDeadlineStatus(c);
+    const d = diffDays(c.deadline);
+    const dotClass = st==='overdue'?'dot-red': st==='soon'?'dot-amber': st==='ok'?'dot-green':'dot-gray';
+    const dateColor = st==='overdue'?'#dc2626': st==='soon'?'#d97706':'#1a1a2e';
+    let deadlineHtml = '<span style="font-size:12px;color:#9ca3af">ไม่ระบุ</span>';
+    if (c.deadline && c.deadline !== '' && c.deadline !== 'undefined') {
+      const label = st==='overdue'?`เกิน ${Math.abs(d)} วัน`: d===0?'วันนี้!':`อีก ${d} วัน`;
+      deadlineHtml = `<div class="deadline-date"><span class="dot-sm ${dotClass}"></span><span style="color:${dateColor}">${thDate(c.deadline)}</span></div><div class="deadline-sub">${label}</div>`;
+    }
+
+    return `<div class="case-row">
+      <div class="case-num">${i+1}</div>
+      <div>
+        <div class="case-name">${escHtml(c.name)}</div>
+        ${c.employer ? `<div class="case-meta">· ${escHtml(c.employer)}</div>` : ''}
+        ${c.code ? `<span class="case-code">${escHtml(c.code)}</span>` : ''}
+        ${c.caseType ? `<div class="case-meta" style="margin-top:3px">📁 ${escHtml(c.caseType)}</div>` : ''}
+      </div>
+      <div><div class="status-text">${c.status ? escHtml(c.status) : '<span style="color:#9ca3af">—</span>'}</div></div>
+      <div><div class="next-text">${c.next ? escHtml(c.next) : '<span style="color:#9ca3af">—</span>'}</div></div>
+      <div>${deadlineHtml}</div>
+      <div class="actions">
+        <button class="icon-btn" onclick="openEditModal('${escAttr(c.id)}')" title="แก้ไข">✏️</button>
+        <button class="icon-btn del" onclick="askDelete('${escAttr(c.id)}')" title="ลบ">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ========== FILTER & SEARCH ==========
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function setSearch(v) {
+  search = v;
+  render();
+}
+
+// ========== MODAL ==========
+function openAddModal() {
+  editId = null;
+  document.getElementById('modal-title').textContent = 'เพิ่มคดีใหม่';
+  clearForm();
+  document.getElementById('modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('f-name').focus(), 100);
+}
+
+function openEditModal(id) {
+  const c = cases.find(x => x.id === id);
+  if (!c) return;
+  editId = id;
+  document.getElementById('modal-title').textContent = 'แก้ไขข้อมูลคดี';
+  document.getElementById('f-code').value = c.code || '';
+  document.getElementById('f-employer').value = c.employer || '';
+  document.getElementById('f-name').value = c.name || '';
+  document.getElementById('f-status').value = c.status || '';
+  document.getElementById('f-next').value = c.next || '';
+  document.getElementById('f-deadline').value = c.deadline || '';
+  document.getElementById('f-type').value = c.caseType || 'กองทุนสงเคราะห์';
+  document.getElementById('f-note').value = c.note || '';
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function clearForm() {
+  ['f-code','f-employer','f-name','f-status','f-next','f-deadline','f-note'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-type').value = 'กองทุนสงเคราะห์';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+  editId = null;
+}
+
+function handleOverlayClick(e) {
+  if (e.target.id === 'modal') closeModal();
+}
+
+// ========== SAVE ==========
+async function saveCase() {
+  const name = document.getElementById('f-name').value.trim();
+  const employer = document.getElementById('f-employer').value.trim();
+  const status = document.getElementById('f-status').value.trim();
+
+  if (!name) { showToast('กรุณากรอกชื่อคดี', 'error'); return; }
+  if (!employer) { showToast('กรุณากรอกชื่อนายจ้าง', 'error'); return; }
+  if (!status) { showToast('กรุณากรอกสถานะปัจจุบัน', 'error'); return; }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'กำลังบันทึก...';
+
+  const data = {
+    id: editId || genId(),
+    code: document.getElementById('f-code').value.trim(),
+    employer,
+    name,
+    status,
+    next: document.getElementById('f-next').value.trim(),
+    deadline: document.getElementById('f-deadline').value || '',
+    caseType: document.getElementById('f-type').value,
+    note: document.getElementById('f-note').value.trim(),
+    createdAt: editId ? (cases.find(c=>c.id===editId)?.createdAt || Date.now()) : Date.now()
+  };
+
+  try {
+    const action = editId ? 'update' : 'add';
+    const result = await apiFetch({ action, data });
+    if (result.error) throw new Error(result.error);
+
+    if (editId) {
+      cases = cases.map(c => c.id === editId ? normalizeCase(data) : c);
+    } else {
+      cases.push(normalizeCase(data));
+    }
+
+    closeModal();
+    render();
+    showToast(editId ? 'แก้ไขคดีเรียบร้อยแล้ว ✓' : 'เพิ่มคดีเรียบร้อยแล้ว ✓', 'success');
+    setSyncStatus('ok', 'ซิงค์แล้ว');
+  } catch(err) {
+    showToast('บันทึกไม่สำเร็จ: ' + err.message, 'error');
+    setSyncStatus('error', 'ซิงค์ไม่สำเร็จ');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '💾 บันทึกคดี';
+  }
+}
+
+// ========== DELETE ==========
+function askDelete(id) {
+  deleteId = id;
+  const c = cases.find(x => x.id === id);
+  document.getElementById('confirm-desc').textContent = `ต้องการลบคดี "${c?.name}" ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้`;
+  document.getElementById('confirm').style.display = 'flex';
+}
+
+function closeConfirm() {
+  document.getElementById('confirm').style.display = 'none';
+  deleteId = null;
+}
+
+async function confirmDelete() {
+  if (!deleteId) return;
+  const btn = document.getElementById('btn-confirm-del');
+  btn.disabled = true;
+  btn.textContent = 'กำลังลบ...';
+
+  try {
+    const result = await apiFetch({ action: 'delete', id: deleteId });
+    if (result.error) throw new Error(result.error);
+    cases = cases.filter(c => c.id !== deleteId);
+    closeConfirm();
+    render();
+    showToast('ลบคดีเรียบร้อยแล้ว', 'success');
+    setSyncStatus('ok', 'ซิงค์แล้ว');
+  } catch(err) {
+    showToast('ลบไม่สำเร็จ: ' + err.message, 'error');
+    setSyncStatus('error', 'ซิงค์ไม่สำเร็จ');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ลบคดี';
+  }
+}
+
+// ========== SETUP ==========
+function saveApiUrl() {
+  const url = document.getElementById('setup-url').value.trim();
+  if (!url.startsWith('https://script.google.com')) {
+    showToast('URL ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง', 'error'); return;
+  }
+  localStorage.setItem(API_URL_KEY, url);
+  API_URL = url;
+  document.getElementById('setup-banner').style.display = 'none';
+  loadCases();
+}
+
+// ========== UTILS ==========
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function escAttr(s) {
+  return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function setSyncStatus(state, label) {
+  const el = document.getElementById('sync-status');
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  el.className = 'sync-status ' + state;
+  lbl.textContent = label;
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = 'toast ' + type; }, 3500);
+}
+
+function clockTick() {
+  const now = new Date();
+  const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const h = now.getHours().toString().padStart(2,'0');
+  const mn = now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('clock').textContent =
+    `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()+543}  ${h}:${mn}`;
+}
+</script>
+</body>
+</html>
